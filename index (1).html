@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sweet Memory Match for Azi 💖</title>
+<style>
+body{
+    margin:0;
+    font-family:'Comic Sans MS', cursive;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    min-height:100vh;
+    background:linear-gradient(to bottom,#ffdce6,#ffb6c1);
+    overflow:hidden;
+    text-align:center;
+}
+
+/* --- INTRO --- */
+#introPage{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+}
+#introPage img{
+    width:200px;
+    border-radius:20px;
+    margin-bottom:20px;
+    box-shadow:0 4px 15px rgba(0,0,0,0.2);
+}
+#introPage button{
+    margin-top:20px;
+    padding:15px 25px;
+    font-size:20px;
+    border:none;
+    border-radius:20px;
+    background:#ff4d88;
+    color:#fff;
+    cursor:pointer;
+    box-shadow:0 4px 8px rgba(0,0,0,0.2);
+    transition:transform 0.2s;
+}
+#introPage button:hover{transform:scale(1.05);}
+
+/* --- GAME BOARD --- */
+#board{
+    display:none;
+    display:grid;
+    grid-template-columns:repeat(5,70px);
+    gap:12px;
+    margin-top:20px;
+}
+.card{
+    width:70px;
+    height:70px;
+    background:#ff7cae;
+    border-radius:12px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-size:28px;
+    cursor:pointer;
+    transition:0.3s;
+    color:#fff;
+}
+.card.flipped{
+    background:#fff;
+    color:#ff4d88;
+    transform:scale(1.1);
+    box-shadow:0 5px 10px rgba(0,0,0,0.2);
+}
+
+/* --- UPDATED ON-SCREEN NOTIFICATION --- */
+#notif{
+    display:none;
+    position:fixed;
+    top:20px;
+    left:50%;
+    transform:translateX(-50%) scale(0);
+    background: linear-gradient(135deg, #ff5ca2, #ff91c5);
+    padding:18px 28px;
+    border-radius:25px;
+    font-size:18px;
+    font-weight:700;
+    color:#fff;
+    box-shadow:0 8px 20px rgba(0,0,0,0.25);
+    z-index:10;
+    text-align:center;
+    letter-spacing:0.5px;
+    opacity:0;
+    transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55), opacity 0.4s ease-out;
+}
+
+/* --- LOADING DOTS --- */
+#loadingDotsPage{
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    height:100%;
+}
+#loadingDotsPage img{
+    width:200px;
+    margin-bottom:15px;
+    border-radius:12px;
+}
+#loadingDotsPage span{
+    font-size:60px;
+    color:#ff69b4;
+    margin:0 5px;
+    animation: blink 1s infinite;
+}
+#loadingDotsPage span:nth-child(1){animation-delay:0s;}
+#loadingDotsPage span:nth-child(2){animation-delay:0.2s;}
+#loadingDotsPage span:nth-child(3){animation-delay:0.4s;}
+#loadingDotsPage span:nth-child(4){animation-delay:0.6s;}
+#loadingDotsPage span:nth-child(5){animation-delay:0.8s;}
+@keyframes blink{0%,50%,100%{opacity:1;}25%,75%{opacity:0;}}
+
+/* --- FINAL WHITE PAPER --- */
+#final{
+    display:none;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    opacity:0;
+    transition: opacity 1s ease-in-out;
+}
+#final.show{
+    opacity:1;
+}
+#paper{
+    background:#fff;
+    border-radius:25px;
+    box-shadow:0 10px 25px rgba(0,0,0,0.3);
+    padding:30px 40px;
+    max-width:400px;
+    text-align:center;
+}
+#paper h1{
+    font-size:28px;
+    color:#ff4d88;
+    margin-bottom:15px;
+}
+#paper p{
+    font-size:18px;
+    color:#333;
+    line-height:2;
+    letter-spacing:1px;
+    white-space:pre-wrap;
+    text-align:center;
+}
+</style>
+</head>
+<body>
+
+<!-- INTRO PAGE -->
+<div id="introPage">
+    <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQCrw78kbYK5eYCWxQ2AyOpBFrt0WuMAVghV3fhgwnnWRF7T-KD9j89bkk&s=10" alt="Sweet Match Logo">
+    <h1>Sweet Memory Match</h1>
+    <button onclick="startGame()">Start Game</button>
+</div>
+
+<!-- GAME BOARD -->
+<div id="board"></div>
+
+<!-- ON-SCREEN NOTIFICATION -->
+<div id="notif">You did it! Congratulations Azi!</div>
+
+<!-- LOADING DOTS PAGE -->
+<div id="loadingDotsPage">
+    <img src="https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif" alt="Loading Sweet GIF">
+    <div><span>.</span><span>.</span><span>.</span><span>.</span><span>.</span></div>
+</div>
+
+<!-- FINAL WHITE PAPER -->
+<div id="final">
+    <div id="paper">
+        <p id="finalMessage"></p>
+    </div>
+</div>
+
+<script>
+// Sweet food emojis 20 cards (10 pairs)
+const emojis = ['🍓','🍰','🍩','🍪','🍫','🧁','🍦','🍭','🍒','🍮'];
+let cardPool=[], first=null, second=null, lock=false, matches=0;
+
+// SHUFFLE ARRAY
+function shuffle(array){ return array.sort(()=>Math.random()-0.5); }
+
+// START GAME
+function startGame(){
+    document.getElementById("introPage").style.display="none";
+    const board=document.getElementById("board");
+    board.innerHTML="";
+    matches=0; first=null; second=null; lock=false;
+
+    cardPool = [...emojis,...emojis];
+    shuffle(cardPool).forEach(e=>{
+        const card=document.createElement("div");
+        card.className="card";
+        card.dataset.emoji=e;
+        card.onclick=flipCard;
+        board.appendChild(card);
+    });
+    board.style.display="grid";
+}
+
+// FLIP CARD
+function flipCard(){
+    if(lock || this.classList.contains("flipped")) return;
+
+    this.classList.add("flipped");
+    this.innerText=this.dataset.emoji;
+
+    if(!first){ first=this; }
+    else{
+        second=this; lock=true;
+        if(first.dataset.emoji===second.dataset.emoji){
+            matches++;
+            resetCards();
+            if(matches===emojis.length){
+                // Show on-screen notif
+                const notif = document.getElementById("notif");
+                notif.style.display = "block";
+                notif.style.opacity = "1";
+                notif.style.transform = "translateX(-50%) scale(1.1)";
+
+                setTimeout(() => {
+                    notif.style.transform = "translateX(-50%) scale(1)";
+                }, 200);
+
+                setTimeout(() => {
+                    notif.style.opacity = "0";
+                    notif.style.transform = "translateX(-50%) scale(0)";
+                    setTimeout(()=>{
+                        notif.style.display = "none";
+                        document.getElementById("board").style.display = 'none';
+                        showLoadingDots();
+                    },400);
+                }, 2200);
+            }
+        }else{
+            setTimeout(()=>{
+                first.classList.remove("flipped"); first.innerText='';
+                second.classList.remove("flipped"); second.innerText='';
+                resetCards();
+            },600);
+        }
+    }
+}
+
+function resetCards(){ first=null; second=null; lock=false; }
+
+// --- LOADING DOTS ---
+function showLoadingDots(){
+    const ld=document.getElementById("loadingDotsPage");
+    ld.style.display='flex';
+    setTimeout(()=>{
+        ld.style.display='none';
+        showFinalMessage();
+    },5000);
+}
+
+// --- FINAL MESSAGE ---
+function showFinalMessage(){
+    const finalPage = document.getElementById("final");
+    const finalBox = document.getElementById("finalMessage");
+    finalPage.style.display = 'flex';
+    finalPage.classList.add('show');
+
+    const message = `Hi Azi, my hun... I miss you so much! How's your day? Ang hardworking naman ng hun ko, for sure pagod ka. Sana hindi nasubok patience mo, Alam mo, I notice how much effort and heart you put into everything you do, kahit pagod ka or stressed. I just want you to know na lagi akong nandito for you hun to support you at i-remind ka palagi sa main goal mo. You mean so much to me, I really appreciate everything you do– your care, your love, your time, and reassurance na binibigay mo sa akin. Also, thank you for always making effort especially when it's hard to communicate because of your busy schedules.
+laging mong galingan hun, i'm so proud of you! take care yourself everyday! ( ˘ ³˘)♥︎`;
+
+    typeEffect(finalBox, message, 40);
+}
+
+// TYPING EFFECT
+function typeEffect(element,text,speed){
+    element.innerText="";
+    let i=0;
+    const interval=setInterval(()=>{
+        if(i<text.length){ element.innerText+=text[i]; i++; } 
+        else clearInterval(interval);
+    },speed);
+}
+</script>
+</body>
+</html>
